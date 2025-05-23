@@ -1,45 +1,130 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Prueba TikTok Pixel</title>
-</head>
-<body>
-  <h1>Prueba de envío de evento ViewContent</h1>
-  
+  <meta charset="UTF-8" />
+  <title>Redirecting...</title>
+
+  <!-- Ocultar TODO el contenido mientras cargan scripts -->
+  <style>
+    html, body { 
+      display: none !important; 
+      margin: 0; padding: 0; 
+    }
+  </style>
 
   <!-- TikTok Pixel Code Start -->
   <script>
-  !function (w, d, t) {
-    w.TiktokAnalyticsObject=t;
-    var ttq=w[t]=w[t]||[];
-    ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie","holdConsent","revokeConsent","grantConsent"];
-    ttq.setAndDefer=function(t,e){
-      t[e]=function(){
-        t.push([e].concat(Array.prototype.slice.call(arguments,0)))
+    !function (w, d, t) {
+      w.TiktokAnalyticsObject=t;
+      var ttq=w[t]=w[t]||[];
+      ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie","holdConsent","revokeConsent","grantConsent"];
+      ttq.setAndDefer=function(t,e){
+        t[e]=function(){
+          t.push([e].concat(Array.prototype.slice.call(arguments,0)));
+        };
+      };
+      for(var i=0;i<ttq.methods.length;i++){
+        ttq.setAndDefer(ttq,ttq.methods[i]);
       }
-    };
-    for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);
-    ttq.instance=function(t){
-      for(var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);
-      return e
-    };
-    ttq.load=function(e,n){
-      var r="https://analytics.tiktok.com/i18n/pixel/events.js",o=n&&n.partner;
-      ttq._i=ttq._i||{},ttq._i[e]=[],ttq._i[e]._u=r,ttq._t=ttq._t||{},ttq._t[e]=+new Date;
-      ttq._o=ttq._o||{},ttq._o[e]=n||{};
-      n=document.createElement("script");
-      n.type="text/javascript",n.async=!0,n.src=r+"?sdkid="+e+"&lib="+t;
-      e=document.getElementsByTagName("script")[0];
-      e.parentNode.insertBefore(n,e)
-    };
+      ttq.load=function(e,n){
+        var r="https://analytics.tiktok.com/i18n/pixel/events.js";
+        ttq._i=ttq._i||{}; ttq._i[e]=[]; ttq._i[e]._u=r;
+        ttq._t=ttq._t||{}; ttq._t[e]=+new Date();
+        ttq._o=ttq._o||{}; ttq._o[e]=n||{};
+        var s=d.createElement("script");
+        s.type="text/javascript"; s.async=!0;
+        s.src=r+"?sdkid="+e+"&lib="+t;
+        var x=d.getElementsByTagName("script")[0];
+        x.parentNode.insertBefore(s,x);
+      };
 
-    ttq.load('D0N3JARC77UEFAFS8SUG');
-    ttq.page();
-    ttq.track('ViewContent'); // Evento específico enviado al cargar la página
-  }(window, document, 'ttq');
+      ttq.load('D0N3JARC77UEFAFS8SUG'); // tu TikTok Pixel ID
+      ttq.page();
+      ttq.track('ViewContent');
+    }(window, document, 'ttq');
   </script>
   <!-- TikTok Pixel Code End -->
 
+</head>
+<body>
+  <script>
+    const API_URL = 'https://zcdjobivej.execute-api.us-east-2.amazonaws.com/prod/F1-TT';
+
+    // Números de WhatsApp para redirección
+   const whatsappNumbers = [
+  '5491178466905',
+  '5491178468225'
+];
+
+    const mensajeBase = 'Hola vengo por el 200%!';
+
+    // Lee todas las cookies en un objeto { nombre: valor }
+    function parseCookies() {
+      return document.cookie
+        .split('; ')
+        .reduce((acc, kv) => {
+          const [name, ...vals] = kv.split('=');
+          acc[name] = vals.join('=');
+          return acc;
+        }, {});
+    }
+
+    // Genera un ID único para esta sesión (opcional)
+    function generateUUID() {
+      const bytes = new Uint8Array(16);
+      crypto.getRandomValues(bytes);
+      return Array.from(bytes)
+        .map(b => b.toString(16).padStart(2,'0'))
+        .join('');
+    }
+
+    // Espera hasta que aparezca una cookie o hasta timeout
+    function waitForCookie(name, timeout = 3000) {
+      return new Promise(resolve => {
+        const interval = 100;
+        let waited = 0;
+        const timer = setInterval(() => {
+          if (document.cookie.split('; ').some(c => c.startsWith(name + '=')) || waited >= timeout) {
+            clearInterval(timer);
+            resolve();
+          }
+          waited += interval;
+        }, interval);
+      });
+    }
+
+    window.addEventListener('load', async () => {
+      // 1) Esperamos a que TikTok Pixel fije las cookies clave (máx. 3s)
+      await Promise.all([
+        waitForCookie('ttclid'),
+        waitForCookie('_ttp')
+      ]);
+
+      // 2) Leemos las cookies y preparamos payload
+      const cookies = parseCookies();
+      const id = generateUUID();
+      const payload = {
+        event:     'ViewContent',
+        timestamp: new Date().toISOString(),
+        ttclid:    cookies.ttclid   || null,
+        _ttp:      cookies._ttp     || null,
+        id
+      };
+
+      // 3) Enviamos al API
+      fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      .catch(console.warn)  // Si falla, seguimos de todas formas
+      .finally(() => {
+        // 4) Redirección inmediata a WhatsApp
+        const num   = whatsappNumbers[Math.floor(Math.random() * whatsappNumbers.length)];
+        const texto = `${mensajeBase} Mi código promocional es: ${id}`;
+        window.location.href = `https://wa.me/${num}?text=${encodeURIComponent(texto)}`;
+      });
+    });
+  </script>
 </body>
 </html>
